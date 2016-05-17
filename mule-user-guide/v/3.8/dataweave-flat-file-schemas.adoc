@@ -441,7 +441,7 @@ The basic structure values are:
 |Structure Key/Section |Description
 |id |Structure identifier
 |name |Structure name (optional)
-|tagStart |Starting column number for segment identifier tags (unique values associated with each segment in a structure)
+|tagStart |Starting column number for segment identifier tags (unique values associated with each segment in a structure) - required, but value must be 0
 |tagLength |Number of columns in segment identifier tags
 |data |List of segments (and groups) in the structure
 |===
