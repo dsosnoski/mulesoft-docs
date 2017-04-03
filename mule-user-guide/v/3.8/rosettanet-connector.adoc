@@ -122,7 +122,7 @@ Global HTTP Listener Reference |Name of global HTTP listener connector configura
 *Type*: string +
 *Required*: yes +
 *Default*: none
-Keystore Path |Path for keystore, which contains trusted partner certificates and this organization's private
+|Keystore Path |Path for keystore, which contains trusted partner certificates and this organization's private
 signing key and certificate. The certificate needs to be in Java Key Store (JKS) format.
 
 *XML parameter:* `keystorePath` +
