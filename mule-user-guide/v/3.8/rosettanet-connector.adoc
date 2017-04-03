@@ -81,8 +81,8 @@ For Maven dependency management, include this XML snippet in your pom.xml file:
 [source,xml,linenums]
 ----
 <dependency>
-  <groupId></groupId>
-  <artifactId></artifactId>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>rosetta-net-connector</artifactId>
   <version>1.0.0</version>
 </dependency>
 ----
@@ -106,29 +106,34 @@ Name |Configuration name by default is `RosettaNet_Configuration`
 |Endpoints: +
 Global HTTP Listener Reference |Name of global HTTP listener connector configuration for this organization's endpoint. For example, you can use the `HTTP_Listener_Configuration` value.
 
-*XML parameter:* `httpListenerRef` +
+*XML parameter:* `httpListener-ref` +
 *Type*: string +
 *Required*: yes +
 *Default*: none
-|Global HTTP Request Reference |Name of global HTTP request connector configuration for this organization's endpoint. For example, you can use the `HTTP_Request_Configuration` value.
+|Service Endpoint Path |Path relative to the referenced HTTP Listener. This is needed when you want to use multiple paths under a single server.
 
-*XML parameter:* `httpRequestRef` +
+*XML parameter:* `servicePath` +
+*Type*: string +
+*Required*: no +
+*Default*: none
+|Global HTTP Request Reference |Name of global HTTP request connector configuration for partner organization's endpoint. For example, you can use the `HTTP_Request_Configuration` value.
+
+*XML parameter:* `httpRequest-ref` +
 *Type*: string +
 *Required*: yes +
 *Default*: none
-|Security: +
 Keystore Path |Path for keystore, which contains trusted partner certificates and this organization's private
 signing key and certificate. The certificate needs to be in Java Key Store (JKS) format.
 
 *XML parameter:* `keystorePath` +
 *Type*: string +
-*Required*: yes +
+*Required*: only if using signing +
 *Default*: none
 |Keystore Pass |Keystore access password.
 
 *XML parameter:* `keystorePass` +
 *Type*: string +
-*Required*: yes +
+*Required*: only if using signing +
 *Default*: none
 |Private Pass |Private signing key password.
 
@@ -142,14 +147,16 @@ Require Secure Transport |Indicate whether or not an HTTPS connection is require
 *XML parameter:* `requireSecureTransport` +
 *Type*: boolean +
 *Required*: no +
-*Default*: `false`
-|Force Signed Messages |Force signing for messages. If `true`, forces
-signing even when not required by the PIP definition. If `false`, the connector
-follows the PIP definition. A RosettaNet object can have a digital signature or not.
-If set to `true`, a signature always occurs.
+*Default*: none
+|Signing Override |Override PIP configuration for the use of signed messages.
 
-*XML parameter:* `forceSignedMessages` +
-*Type*: boolean +
+Possible values:
+
+* ALWAYS
+* NEVER
+
+*XML parameter:* `signingOverride` +
+*Type*: string +
 *Required*: no +
 *Default*: `false`
 |Global Usage Code |Choose what mode to run this connector. 
@@ -163,11 +170,11 @@ Possible values:
 *XML parameter:* `globalUsageCode` +
 *Type*: string +
 *Required*: no +
-*Default*: none
+*Default*: `Production`
 |Object Store Ref |Object store configuration reference. If not set, the connector always uses the default persistent object store to retain sent messages waiting for acknowledgments or retries. If set, the referenced bean must be an object store configuration to be used instead. See also: 
 link:https://forums.mulesoft.com/questions/38011/what-is-an-object-store-bean.html[What is an object store bean?]
 
-*XML parameter:* `objectStoreRef` +
+*XML parameter:* `objectStore-ref` +
 *Type*: string +
 *Required*: no  +
 *Default*: none
@@ -197,14 +204,13 @@ Partner Business Identifier |DUNS ID for the partner organization.
 *Type*: string +
 *Required*: no +
 *Default*: none
-|Partner Path |Partner server endpoint.
-
-*XML parameter:* `partnerPath` +
-*Type*: string +
-*Required*: no +
-*Default*: none
 |PIP: +
 Pip Role |Role in Partner Interface Process (PIP) usage.
+
+Possible values:
+
+* INITIATOR
+* RESPONDER
 
 *XML parameter:* `pipRole` +
 *Type*: string +
@@ -235,9 +241,15 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/rosetta-net http://www.mulesoft.org/schema/mule/rosetta-net/current/mule-rosetta-net.xsd">
     <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
     <http:request-config name="HTTP_Request_Configuration" host="0.0.0.0" port="8082" doc:name="HTTP Request Configuration"/>
+    <spring:beans>
+      <!-- Note that this should only be used for testing,
+       since it won't preserve messages across restarts -->
+      <spring:bean id="nonPersistentStore" 
+       class="org.mule.util.store.SimpleMemoryObjectStore" />
+    </spring:beans>
     <rosetta-net:config name="RosettaNet__Configuration" 
-        httpListenerRef="HTTP_Listener_Configuration" 
-        httpRequestRef="HTTP_Request_Configuration" 
+        httpListener-ref="HTTP_Listener_Configuration" 
+        httpRequest-ref="HTTP_Request_Configuration" 
         doc:name="RosettaNet: Configuration" 
         keystorePass="*************" 
         keystorePath="/partner2.jks" 
@@ -248,37 +260,68 @@ http://www.mulesoft.org/schema/mule/rosetta-net http://www.mulesoft.org/schema/m
         privatePass="*************" 
         selfBusinessIdentifier="123456789" 
         selfLocationId="partner2" 
-        forceSignedMessages="true" 
-        objectStoreRef="best" 
+        signingOverride="ALWAYS" 
+        objectStore-ref="nonPersistentStore" 
         requireSecureTransport="true"/>
     <flow name="xFlow">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/" doc:name="HTTP"/>
-        <rosetta-net:send-action config-ref="RosettaNet__Configuration" doc:name="RosettaNet"/>
-        <http:request config-ref="HTTP_Request_Configuration" path="/req" method="GET" doc:name="HTTP"/>
+        <file:inbound-endpoint path="confirm-in" 
+        moveToDirectory="confirm-out" 
+        responseTimeout="10000" 
+        doc:name="File"/>
+        <rosetta-net:send-action
+        config-ref="RosettaNet__Configuration" 
+        doc:name="RosettaNet"/>
     </flow>
 </mule>
 ----
 
 == About Specifying an Operation
 
-To choose an operation:
+The RosettaNet Connector can be used either as a source 
+of messages or as a sender of messages. The connector can
+also be used as a helper for a source of messages, 
+supplying metadata used by DataWeave to show the 
+structure of the received messages.
+  
+When using the connector as a source, select one of the
+following Operations:
 
-From *Operations*, select one of the following:
+* *Receive action message* - Source for flows processing received action messages matching the PIP configuration.
+* *Receive failure notification message* - Source for flows processing received failure notification messages (PIP 0A1).
+* *Receive signal message* - Source for flows processing received acknowledgment or exception signals, or send failures (after retries exceeded).
 
-* Send action message
-* Send failure message
-* Set metadata for received action
-* Set metadata for received failure
-* Set metadata for received signal
+Additional fields when using the connector to receive signal messages:
 
-Additional fields:
+[%header%autowidth.spread]
+|===
+|Field |Description
+|Signal type |Type of signal or send failure to be sourced for this flow.
+|===
+
+When using the connector to add metadata to a source, select one of the following from *Operations* to match the source:
+
+* *Set metadata for received action* - Add metadata for a received action message matching the PIP configuration.
+* *Set metadata for received failure* - Add metadata for a received failure notification message.
+* *Set metadata for receive signal* - Add metadata supplied by acknowledgment or exception signals, or by send failures.
+
+When using the connector as a sender, select one of the following from *Operations*:
+
+* *Send action message* - Send action messages matching the PIP configuration.
+* *Send failure message* - Send failure notification messages (PIP 0A1).
+
+Additional fields when using the connector as a sender:
 
 [%header%autowidth.spread]
 |===
 |Field |Description
 |Input Reference |Specify a MEL expression such as `&#x0023;[payload]` for the message value.
-|Service endpoint | Endpoint
+|In-Reply-To Action Identity |Action identity from original action, if sending a response action or a signal.
+|In-Reply-To Message Identifier |Message identifier from original action, if sending a response action or a signal.
+|Response PIP Instance Identifier |PIP instance identifier from original action, if sending a response action or a signal.
 |===
+  
+The In-Reply-To values and Response PIP Instance Identifier  automatically default to the appropriate values if the
+connector is used as a sender in a flow sourced with a received action, using the Inbound Properties added by the received action source and shown in metadata.
 
 == About Buyer and Seller Configurations
 
@@ -337,13 +380,12 @@ You can use the following to disable the default object store for testing and de
 [source,xml,linenums]  
 ----
 <spring:beans>
-      <spring:bean id="objectStore" class="org.mule.util.store.SimpleMemoryObjectStore" />
+  <spring:bean id="objectStore" 
+  class="org.mule.util.store.SimpleMemoryObjectStore" />
 </spring:beans>
 ----
 
 You can either plug this directly into the XML and reference it from the RosettaNet configuration (using the name "objectStore") or create it through Global Elements > Create > Beans > Bean.
-
-
 
 == To Customize a PIP
 
@@ -352,8 +394,7 @@ Customizing a PIP comprises two paths:
 * Parameters: Change settings within a PIP version's XML file.
 * Advanced: Create a custom DTD from which you create an XSD file. 
 
-For both paths, put the new or changed files in your Studio 
-project's src/main/resources folder. When you are ready for production, you can create a new JAR with the updated XML file.
+For both paths, put the new or changed files in a directory in your Studio project's src/main/resources folder.
 
 To customize parameters in a PIP:
 
