@@ -13,8 +13,8 @@ The X12 Module includes:
 To get started using the connector, follow these steps:
 
 . Install the X12 connector.
-. Create schemas to describe your EDI messages according to your implementation.
-. Configure the EDI Module for your trading partner according to your implementation convention.
+. Create schemas to describe your EDI messages according to your implementation convention (if different from the standard).
+. Configure the EDI Module to exchange messages with your trading partner.
 . Use the EDI module inside Mule flows.
 
 This page helps provides guidance for each of these steps.
@@ -46,9 +46,9 @@ If you want to use the X12 Module in conjunction with Maven, follow the instruc
 
 == EDI Schema Language
 
-The X12 Module uses a YAML format called ESL (for EDI Schema Language) to represent EDI schemas.  Basic ESLs define the structure of EDI messages in terms of _structures_ (transaction sets, in X12 terminology), _groups_ (loops, in X12), _segments_, _composites_, and _elements_. ESLs for the X12 004010 and 005010 versions are included. 
+The X12 Module uses a YAML format called ESL (for EDI Schema Language) to represent EDI schemas.  Basic ESLs define the structure of EDI messages in terms of _structures_ (transaction sets, in X12 terminology), _groups_ (loops, in X12), _segments_, _composites_, and _elements_. ESLs for all transaction sets in X12 0030xx, 0040xx, 0050xx, and 006020 versions are included in the connector. 
 
-To configure the X12 Module according to your implementation convention, define an _overlay schema_. An overlay schema is a special form of ESL that allows you to modify a base schema, such as an X12 4010 850 schema, with your specific conventions. (You don't need an overlay schema if you're using the structure defined by the standard, but most EDI exchanges modify the base definitions in an implementation convention).
+If you're using an implementation convention which modifies the base standard, define an _overlay schema_. An overlay schema is a special form of ESL that allows you to modify a base schema, such as an X12 4010 850 schema, with your specific conventions. (You don't need an overlay schema if you're using the structure defined by the standard, but many EDI exchanges modify the base definitions in an implementation convention).
 
 You can also define your own schemas from scratch.
 See link:/anypoint-b2b/edi-schema-language-reference[EDI Schema Language Reference] for more details.
@@ -187,7 +187,7 @@ If you're creating a custom implementation convention, you should put your schem
 
 == Configuring the X12 Module
 
-After you install the connector and configure your schema customizations (if any), you can start using the connector. Create separate configurations for each implementation convention.
+After you install the connector and configure your schema customizations (if any), you can start using the connector. Your first step is to create an X12 module configuration.
 
 [tabs]
 ------
@@ -211,20 +211,6 @@ image:x12-module-3.png[x12-module-3]
 
 Ensure that you have included the EDI namespaces in your configuration file.
 
-[source, code, linenums]
-----
-segments:
-- { idRef: AMT, trim: 3 }
-- idRef: BEG
-  items:
-  - { position: 4, usage: U }
-- { idRef: DTM, trim: 3 }
-- idRef: ITD
-  items:
-  - { position: 4, usage: U }
-  - { position: 6, usage: U }
-----
-
 Follow these steps to configure a EDI module in your application.
 
 . Create a global ServiceNow configuration outside and above your flows, using the following global configuration code.
@@ -239,7 +225,7 @@ Follow these steps to configure a EDI module in your application.
 </x12-edi:config>
 ----
 +
-. Configure the connector according to your implementation convention using the guide below.
+. Configure the connector for use with your trading partner(s) using the guide below.
 ....
 ------
 
@@ -265,7 +251,9 @@ Using the schema locations determined above, switch to the XML view by clicking 
 
 You can configure the interchange ID, interchange ID qualifier, and group application ID for you and your trading partner on the X12 Module connector configuration.
 
-The "Self identification" parameters identify your side of the trading partner relationship, while the "Partner identification" parameters identify your trading partner. The values you set are used when writing EDI messages to supply the interchange ID, interchange ID qualifier, or group application ID, and are verified in receive messages. If you don't want to restrict incoming messages you can leave these blank, and set the values for outgoing messages on the write operation or the actual outgoing message. Values set on the write operation overrides the connector configuration, and values set directly on the message overrides both the connector configuration and any values set on the write operation.
+The "Self identification" parameters identify your side of the trading partner relationship, while the "Partner identification" parameters identify your trading partner. The values you set are used when writing EDI messages to supply the interchange ID, interchange ID qualifier, or group application ID, and are verified in receive messages.
+
+If you don't want to restrict incoming messages you can leave these blank, and set the values for outgoing messages on the write operation or the actual outgoing message. Values set on the write operation overrides the connector configuration, and values set directly on the message overrides both the connector configuration and any values set on the write operation. With this type of configuration a single flow can be used for exchanging messages with multiple partners.
 
 == Understanding X12 Message Structure
 
