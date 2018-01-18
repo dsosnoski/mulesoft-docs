@@ -5,7 +5,7 @@ MuleSoft maintains these EDI connector modules under the link:/mule-user-guide/v
 
 == X12 and EDIFACT Modules 1.3.1 - January 18, 2018
 
-=== Version 1.3.0 - Compatibility
+=== Version 1.3.1 - Compatibility
 
 [%header%autowidth.spread]
 |===
@@ -13,11 +13,11 @@ MuleSoft maintains these EDI connector modules under the link:/mule-user-guide/v
 |Mule Runtime|Mule 3.6.0 and newer
 |===
 
-=== Version 1.3.0 - Fixed Issues
+=== Version 1.3.1 - Fixed Issues
 
 * Corrected expected version in schemas for 005010X214B3
 
-=== Version 1.3.0 - New Features
+=== Version 1.3.1 - New Features
 
 * Added HIPAA 005010X223A2 schemas
 
