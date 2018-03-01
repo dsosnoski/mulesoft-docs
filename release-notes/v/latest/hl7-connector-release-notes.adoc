@@ -32,6 +32,10 @@ HL7 EDI Connector v3.1.0 is compatible with the following:
 * Correct handling of message structure segment groups with optional leading segments.
 * Correct handling of choice groupings of segments.
 
+=== Version 3.1.0 Known Issue
+
+* The `validateHL7Version` configuration option is broken, resulting in a NullPointerException when trying to read a message with this option enabled.
+
 === Version 3.1.0 Backward Compatibility
 
 Version 3.0.0 always used numeric position prefixes on segment keys (such as "01_MSH"). This has been disabled by default in 3.1.0, so that the segment key is normally just the segment tag (modified with a numeric suffix, if necessary because the segment is used in multiple locations within the same level of the message structure). For compatibility with 3.0.0 mappings you can turn off the "Disable numeric prefixes for data keys" configuration option (`identKeys="false"`).
